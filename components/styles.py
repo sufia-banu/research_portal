@@ -62,8 +62,9 @@ html, body, [class*="css"] {
     box-shadow: var(--shadow-lg) !important;
 }
 /* Reduce default Streamlit sidebar top padding and component spacing */
+[data-testid="stSidebarHeader"] { padding: 0 !important; margin: 0 !important; }
 [data-testid="stSidebar"] > div:first-child {
-    padding-top: 1rem !important;
+    padding-top: 0rem !important;
 }
 [data-testid="stSidebar"] .element-container { margin-bottom: 0px !important; }
 [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] { margin-bottom: 0px !important; }
@@ -107,6 +108,7 @@ html, body, [class*="css"] {
 .sidebar-logo-centered {
     text-align: center;
     padding: 0px 10px 10px;
+    margin-top: -10px;
     margin-bottom: 5px;
 }
 .sidebar-logo-centered img {
