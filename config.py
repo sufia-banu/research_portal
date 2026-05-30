@@ -11,6 +11,9 @@ SUPABASE_URL             = os.getenv("SUPABASE_URL", "")
 SUPABASE_ANON_KEY        = os.getenv("SUPABASE_ANON_KEY", "")
 SUPABASE_SERVICE_ROLE_KEY= os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
+# ── API Keys ──────────────────────────────────────────────
+SERPAPI_KEY              = os.getenv("SERPAPI_KEY", "")
+
 # ── App Meta ──────────────────────────────────────────────
 APP_NAME         = os.getenv("APP_NAME", "Research Information Collection Portal")
 INSTITUTION_NAME = os.getenv("INSTITUTION_NAME", "HKBK College of Engineering")
@@ -33,17 +36,19 @@ ROLE_HIERARCHY = {
 # ── Departments (fallback if DB unavailable) ───────────────
 # Only engineering departments — mirrors departments_seed.sql
 ENGINEERING_DEPARTMENTS = [
-    "Computer Science and Engineering",
-    "Information Science and Engineering",
     "Artificial Intelligence and Machine Learning",
+    "Chemistry",
+    "Computer Science and Engineering",
     "Electronics and Communication Engineering",
-    "Mechanical Engineering",
     "Humanities",
-    "Basic Science",
+    "Information Science and Engineering",
+    "Mathematics",
+    "Mechanical Engineering",
+    "Physics",
 ]
 
 # ── Research Types ────────────────────────────────────────
-RESEARCH_TYPES = ["Journal", "Conference", "Patent", "Research Proposal", "FDP", "Consultancy", "Project"]
+RESEARCH_TYPES = ["Journal", "Conference", "Book", "Patent", "Research Proposal", "FDP", "Consultancy", "Project"]
 
 # ── Indexing Options ──────────────────────────────────────
 INDEXING_OPTIONS = [

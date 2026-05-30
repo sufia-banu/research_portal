@@ -90,8 +90,13 @@ def render_auth_page():
         with tab_reg:
             st.markdown("<h3 style='margin-top:8px;margin-bottom:20px;font-size:1.4rem;color:var(--secondary);font-weight:700;'>Create Account</h3>", unsafe_allow_html=True)
             departments = get_department_names() or [
-                "Computer Science and Engineering", "Electronics and Communication Engineering",
-                "Mechanical Engineering", "Civil Engineering"
+                "Artificial Intelligence and Machine Learning",
+                "Basic Sciences",
+                "Computer Science and Engineering",
+                "Electronics and Communication Engineering",
+                "Humanities",
+                "Information Science and Engineering",
+                "Mechanical Engineering"
             ]
 
             with st.form("register_form", clear_on_submit=True):

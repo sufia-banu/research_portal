@@ -66,10 +66,13 @@ def render_admin_dashboard():
 
             st.markdown(f"**{len(fp)} user(s)**")
             for p in fp:
+                photo = p.get('photo_url')
+                avatar_html = f'<img src="{photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' if photo else (p.get('full_name', 'U')[0].upper() if p.get('full_name') else 'U')
+                
                 ucard = f"""
                 <div class="user-card" style="border-left: 4px solid {'var(--success)' if p.get('is_active',True) else 'var(--danger)'}; margin-bottom: 0;">
-                    <div class="user-avatar" style="background:{'var(--primary-light)' if p.get('is_active',True) else 'var(--danger-light)'}; color:{'var(--primary)' if p.get('is_active',True) else 'var(--danger)'};">
-                        {p.get('full_name', 'U')[0].upper() if p.get('full_name') else 'U'}
+                    <div class="user-avatar" style="background:{'var(--primary-light)' if p.get('is_active',True) else 'var(--danger-light)'}; color:{'var(--primary)' if p.get('is_active',True) else 'var(--danger)'}; padding:0; overflow:hidden;">
+                        {avatar_html}
                     </div>
                     <div class="user-info" style="flex:1;">
                         <strong style="font-size:1.05rem;">{p.get('full_name','')}</strong>

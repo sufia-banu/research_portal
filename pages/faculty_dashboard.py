@@ -32,6 +32,9 @@ import json
 
 def _status_opts(rtype): 
     return {"Publication": PUBLICATION_STATUSES,
+            "Journal": PUBLICATION_STATUSES,
+            "Conference": PUBLICATION_STATUSES,
+            "Book": PUBLICATION_STATUSES,
             "Patent": PATENT_STATUSES}.get(rtype, PROPOSAL_STATUSES)
 
 
@@ -71,6 +74,76 @@ def render_faculty_dashboard():
 
     # ── MY ENTRIES ────────────────────────────────────────
     with tab_entries:
+        # Google Scholar Import Section
+        with st.expander("🤖 Import from Google Scholar", expanded=st.session_state.get("scholar_expanded", False)):
+            scholar_link = profile.get("google_scholar_link")
+            if not scholar_link:
+                st.warning("⚠️ You haven't added a Google Scholar link to your profile. Please add it in 'My Profile' to use this feature.")
+            else:
+                st.info(f"🔗 **Connected Profile:** {scholar_link}")
+                if st.button("Fetch Publications from Google Scholar", type="primary"):
+                    st.session_state["scholar_expanded"] = True
+                    with st.spinner("Fetching from Google Scholar..."):
+                        from services.google_scholar_service import fetch_scholar_publications
+                        success, data = fetch_scholar_publications(scholar_link)
+                        if not success:
+                            st.error(data)
+                        else:
+                            st.session_state["scholar_results"] = data
+                            st.rerun()
+                            
+            if "scholar_results" in st.session_state:
+                results = st.session_state["scholar_results"]
+                st.success(f"Found {len(results)} publications!")
+                
+                existing_titles = {e.get("title", "").strip().lower() for e in fetch_my_entries(user["id"])}
+                
+                st.write("Select publications to import (duplicates are auto-detected):")
+                with st.form("scholar_import_form"):
+                    selected_indices = []
+                    for i, r in enumerate(results):
+                        title = r.get("title","")
+                        is_dup = title.strip().lower() in existing_titles
+                        label = f"**{title}**" if not is_dup else f"~~{title}~~ *(Already Imported)*"
+                        
+                        col1, col2, col3 = st.columns([0.1, 3, 1])
+                        with col1:
+                            # Note: Checkboxes inside forms don't return dynamic state until submit. 
+                            # We can capture the checked state upon submit by using the session_state key or checking return value.
+                            # Streamlit form widgets return their value upon submit!
+                            chk = st.checkbox("", key=f"sch_{i}", value=not is_dup, disabled=is_dup)
+                        with col2:
+                            st.markdown(label)
+                            st.caption(f"{r.get('authors','')} - {r.get('journal_or_patent_office','')}")
+                        with col3:
+                            st.caption(f"Year: {r.get('year','')}")
+                            
+                    st.markdown("---")
+                    if st.form_submit_button("Import Selected Publications", type="primary"):
+                        selected_count = 0
+                        for i, r in enumerate(results):
+                            if st.session_state.get(f"sch_{i}", False):
+                                data_to_insert = {
+                                    "faculty_id": user["id"],
+                                    "title": sanitize_text(r.get("title", "")),
+                                    "research_type": "Publication",
+                                    "journal_or_patent_office": sanitize_text(r.get("journal_or_patent_office", ""))[:255] if r.get("journal_or_patent_office") else None,
+                                    "authors": sanitize_text(r.get("authors", "")),
+                                    "year": r.get("year"),
+                                    "month": 1,
+                                    "status": "Published",
+                                    "department": profile.get("department"),
+                                    "notes": f"Cited by: {r.get('cited_by', 0)}\nGoogle Scholar Link: {r.get('link', '')}",
+                                    "is_nba_relevant": True
+                                }
+                                if add_research_entry(data_to_insert):
+                                    selected_count += 1
+                        st.success(f"Successfully imported {selected_count} publications!")
+                        st.session_state.pop("scholar_results", None)
+                        st.session_state["scholar_expanded"] = False
+                        st.rerun()
+                        
+        st.markdown("<br>", unsafe_allow_html=True)
         entries = fetch_my_entries(user["id"])
         fc1, fc2, fc3 = st.columns(3)
         with fc1: ftype  = st.selectbox("Type", ["All"] + RESEARCH_TYPES, key="fe_t")
@@ -259,6 +332,8 @@ def _venue_label(rtype: str) -> tuple[str, str]:
         return "📓 Journal Name", "e.g. IEEE Transactions, Springer Nature, Elsevier ESWA"
     elif rtype == "Conference":
         return "🎙️ Conference Name", "e.g. IEEE ICML, NeurIPS, CVPR"
+    elif rtype == "Book":
+        return "📖 Publisher Name", "e.g. Springer, O'Reilly, CRC Press"
     elif rtype == "Patent":
         return "🏛️ Patent Office", "e.g. Indian Patent Office, USPTO, EPO"
     else:  # Research Proposal
@@ -384,7 +459,15 @@ def _add_form(faculty_id, profile):
             indexing      = st.selectbox("🔖 Indexing", [""] + INDEXING_OPTIONS, index=idx_idx)
             impact_factor = st.number_input("📈 Impact Factor", 0.0, step=0.001, format="%.3f")
             status        = st.selectbox("📊 Status *", _status_opts(rtype))
-            sub_date      = st.date_input("📅 Submission Date", value=date.today())
+            
+            # Pre-fill date from extraction if available
+            default_date = date.today()
+            if meta.get("year"):
+                try:
+                    default_date = date(int(meta.get("year")), int(meta.get("month") or 1), 1)
+                except (ValueError, TypeError):
+                    pass
+            sub_date      = st.date_input("📅 Date", value=default_date)
             is_nba        = st.checkbox("✅ Include in NBA Report", value=True)
 
         # Type-specific extra fields
@@ -551,7 +634,15 @@ def _edit_form(entry):
             status = st.selectbox("📊 Status", all_statuses, index=all_statuses.index(cur) if cur in all_statuses else 3)
         with c4:
             sub_val = entry.get("submission_date")
-            parsed_date = date.fromisoformat(sub_val[:10]) if sub_val and len(sub_val) >= 10 else date.today()
+            if sub_val and len(sub_val) >= 10:
+                parsed_date = date.fromisoformat(sub_val[:10])
+            elif entry.get("year"):
+                try:
+                    parsed_date = date(int(entry.get("year")), int(entry.get("month") or 1), 1)
+                except (ValueError, TypeError):
+                    parsed_date = date.today()
+            else:
+                parsed_date = date.today()
             sub_date = st.date_input("📅 Date", value=parsed_date)
 
         patent_number = st.text_input("📜 Patent Number (if Patent)", value=entry.get("patent_number", "") or "")
@@ -593,6 +684,8 @@ def _edit_form(entry):
                 "is_nba_relevant":          is_nba,
                 "notes":                    sanitize_text(notes) or None,
             }):
+                st.session_state.pop(f"ov_ie_{eid}", None)
+                st.session_state.pop(f"ov_id_{eid}", None)
                 st.success("✅ Entry updated successfully!")
                 st.rerun()
 

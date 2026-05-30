@@ -173,6 +173,7 @@ def sign_out():
     for k in ["authenticated", "user", "profile", "access_token",
               "refresh_token", "pending_verify_email"]:
         st.session_state[k] = None
+    st.session_state.pop("current_page", None)
     st.session_state["authenticated"] = False
     st.rerun()
 

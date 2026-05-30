@@ -18,11 +18,39 @@ def fetch_departments() -> list[dict]:
     try:
         client = get_supabase_client()
         res = client.table("departments").select("*").order("department_name").execute()
-        return res.data or []
+        depts = res.data or []
     except Exception:
         # Return fallback list as dict format (no error shown — used on registration page)
-        return [{"id": None, "department_name": d, "code": ""}
+        depts = [{"id": None, "department_name": d, "code": ""}
                 for d in ENGINEERING_DEPARTMENTS]
+                
+    filtered = []
+    has_physics = False
+    has_chemistry = False
+    has_math = False
+    
+    for d in depts:
+        name = d["department_name"]
+        if name in ("Civil Engineering", "Basic Science", "Basic Sciences"):
+            continue
+        if name == "Physics":
+            has_physics = True
+        if name == "Chemistry":
+            has_chemistry = True
+        if name == "Mathematics":
+            has_math = True
+            
+        filtered.append(d)
+        
+    if not has_physics:
+        filtered.append({"id": None, "department_name": "Physics", "code": "PHY"})
+    if not has_chemistry:
+        filtered.append({"id": None, "department_name": "Chemistry", "code": "CHEM"})
+    if not has_math:
+        filtered.append({"id": None, "department_name": "Mathematics", "code": "MATH"})
+        
+    filtered.sort(key=lambda x: x["department_name"])
+    return filtered
 
 
 def get_department_names() -> list[str]:
@@ -199,11 +227,15 @@ def _build_academic_year(year: int, month: int) -> str:
         return f"{year-1}-{str(year)[-2:]}"
 
 def _map_entry_types(entry: dict) -> dict:
-    """Map DB 'Publication' type to 'Journal' or 'Conference' for the UI based on conference_name field."""
+    """Map DB 'Publication' type to 'Journal', 'Conference', or 'Book' for the UI based on conference_name field."""
     if entry.get("research_type") == "Publication":
-        if entry.get("conference_name") is not None:
+        c_name = entry.get("conference_name")
+        if c_name == "[BOOK]":
+            entry["research_type"] = "Book"
+            j_name = entry.get("journal_or_patent_office")
+            entry["journal_or_patent_office"] = "" if j_name == "[JOUR_BLANK]" else j_name
+        elif c_name is not None:
             entry["research_type"] = "Conference"
-            c_name = entry.get("conference_name")
             entry["journal_or_patent_office"] = "" if c_name == "[CONF_BLANK]" else c_name
         else:
             entry["research_type"] = "Journal"
@@ -225,11 +257,14 @@ def add_research_entry(data: dict) -> bool:
         data["academic_year"] = _build_academic_year(data["year"], data["month"])
         
         # Map UI types to DB constraints
-        if data.get("research_type") in ("Journal", "Conference"):
+        if data.get("research_type") in ("Journal", "Conference", "Book"):
             val = data.get("journal_or_patent_office") or ""
             if data["research_type"] == "Conference":
                 data["conference_name"] = val if val else "[CONF_BLANK]"
                 data["journal_or_patent_office"] = None
+            elif data["research_type"] == "Book":
+                data["conference_name"] = "[BOOK]"
+                data["journal_or_patent_office"] = val if val else "[JOUR_BLANK]"
             else:
                 data["conference_name"] = None
                 data["journal_or_patent_office"] = val if val else "[JOUR_BLANK]"
@@ -254,11 +289,14 @@ def update_research_entry(entry_id: str, data: dict) -> bool:
             data["academic_year"] = _build_academic_year(data["year"], data["month"])
             
         # Map UI types to DB constraints
-        if data.get("research_type") in ("Journal", "Conference"):
+        if data.get("research_type") in ("Journal", "Conference", "Book"):
             val = data.get("journal_or_patent_office") or ""
             if data["research_type"] == "Conference":
                 data["conference_name"] = val if val else "[CONF_BLANK]"
                 data["journal_or_patent_office"] = None
+            elif data["research_type"] == "Book":
+                data["conference_name"] = "[BOOK]"
+                data["journal_or_patent_office"] = val if val else "[JOUR_BLANK]"
             else:
                 data["conference_name"] = None
                 data["journal_or_patent_office"] = val if val else "[JOUR_BLANK]"
