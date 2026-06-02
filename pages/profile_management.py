@@ -51,6 +51,7 @@ def render_profile_management():
                 }
                 try:
                     if update_profile(uid, updates):
+                        st.session_state["profile"].update(updates)
                         st.success("Basic info updated!")
                         st.rerun()
                 except Exception as e:
@@ -103,6 +104,7 @@ def render_profile_management():
                 # Ensure we serialize lists correctly if the DB layer doesn't auto-handle JSON
                 # Supabase handles dict/list to JSONB naturally through the python client
                 if update_profile(uid, updates):
+                    st.session_state["profile"].update(updates)
                     st.success("Research Supervision details updated!")
                     st.rerun()
             except Exception as e:
@@ -130,6 +132,7 @@ def render_profile_management():
                     "google_scholar_link": sanitize_text(scholar)
                 }
                 if update_profile(uid, updates):
+                    st.session_state["profile"].update(updates)
                     st.success("Links updated!")
                     st.rerun()
 
@@ -148,6 +151,7 @@ def render_profile_management():
                     new_url = upload_avatar(uploaded_photo.getvalue(), uploaded_photo.name, uid)
                     if new_url:
                         if update_profile(uid, {"photo_url": new_url}):
+                            st.session_state["profile"]["photo_url"] = new_url
                             st.success("Photo updated successfully!")
                             st.rerun()
                         else:

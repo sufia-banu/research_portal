@@ -119,7 +119,13 @@ def render_faculty_dashboard():
                             st.caption(f"Year: {r.get('year','')}")
                             
                     st.markdown("---")
-                    if st.form_submit_button("Import Selected Publications", type="primary"):
+                    col_btn1, col_btn2, _ = st.columns([2, 1, 3])
+                    with col_btn1:
+                        submitted = st.form_submit_button("Import Selected Publications", type="primary")
+                    with col_btn2:
+                        cancelled = st.form_submit_button("Cancel")
+
+                    if submitted:
                         selected_count = 0
                         for i, r in enumerate(results):
                             if st.session_state.get(f"sch_{i}", False):
@@ -139,6 +145,11 @@ def render_faculty_dashboard():
                                 if add_research_entry(data_to_insert):
                                     selected_count += 1
                         st.success(f"Successfully imported {selected_count} publications!")
+                        st.session_state.pop("scholar_results", None)
+                        st.session_state["scholar_expanded"] = False
+                        st.rerun()
+                        
+                    if cancelled:
                         st.session_state.pop("scholar_results", None)
                         st.session_state["scholar_expanded"] = False
                         st.rerun()
