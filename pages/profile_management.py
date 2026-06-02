@@ -72,8 +72,8 @@ def render_profile_management():
         new_scholars_data = []
 
         if r_role == "Research Supervisor":
-            num_scholars = st.selectbox("Number of Scholars", list(range(1, 11)), 
-                                        index=len(scholars_data)-1 if 1 <= len(scholars_data) <= 10 else 0)
+            num_scholars = st.selectbox("Number of Scholars", list(range(0, 11)), 
+                                        index=len(scholars_data) if 0 <= len(scholars_data) <= 10 else 0)
             
             st.markdown("##### Scholar Details")
             for i in range(num_scholars):

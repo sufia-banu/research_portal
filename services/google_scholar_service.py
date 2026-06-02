@@ -15,7 +15,7 @@ def fetch_scholar_publications(scholar_link: str) -> tuple[bool, str | list[dict
     Returns (success_boolean, data_or_error_message).
     """
     if not SERPAPI_KEY:
-        return False, "SerpApi Key is not configured in .env."
+        return False, "SerpApi Key is not configured. Add SERPAPI_KEY to your .env file or Streamlit App Secrets."
 
     author_id = extract_scholar_id(scholar_link)
     if not author_id:
